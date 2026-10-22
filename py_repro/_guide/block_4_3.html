@@ -1,0 +1,12 @@
+<div class="note paper">
+<span class="t">论文原文（式 2）</span>
+<p>匹配代价 <i>s</i>(<i>k</i>,<i>i</i>) 由三项加权相加，<b>分越低越可能是同一次闪烁</b>。权重 α = 0.5、β = 0.4、γ = 0.1；容差 t_max = 150 µs、y_tol = 15 px、视差区间 [5, 150] px。</p>
+</div>
+
+<div class="eq" data-no="式 (2)">
+  <div class="line"><i>s</i>(<i>k</i>,<i>i</i>) = <i>α</i> · <span class="frac"><span class="n">|<i>t</i><sub>k</sub> − <i>t</i><sub>i</sub>|</span><span class="d"><i>t</i><sub>max</sub></span></span> + <i>β</i> · <span class="frac"><span class="n">|<i>y</i><sub>k</sub> − <i>y</i><sub>i</sub>|</span><span class="d"><i>y</i><sub>tol</sub></span></span> + <i>γ</i> · <span class="frac"><span class="n">|<i>d</i><sub>k</sub> − <i>d</i><sub>i</sub>|</span><span class="d">½(<i>d</i><sub>max</sub> − <i>d</i><sub>min</sub>)</span></span></div>
+  <div class="cap">从左到右三项依次是<b>时间项、极线项、视差项</b>。三项都做了归一化（各自除以自己的容差），所以量纲统一、可以相加、权重才有可比性。任一项踩到容差边界时它恰好等于 1，乘上权重就是 0.5 / 0.4 / 0.1 —— <b>三项全爆 = 1.0，这就是代码里那个门槛的来历</b>。</div>
+</div>
+
+<div class="wbar"><span style="width:50%;background:#185FA5">α 0.5　时间</span><span style="width:40%;background:#3d84bf">β 0.4　极线</span><span style="width:10%;background:#7fb0d8">γ</span></div>
+<div class="wbar-cap">把三项权重画成一根总量为 1.0 的条：<b>时间项独占一半</b>，极线项四成，视差项只剩一成。这个配比正好对应图 4-1 的漏斗 —— 时间窗是绝对主力，视差窗只是微调。</div>

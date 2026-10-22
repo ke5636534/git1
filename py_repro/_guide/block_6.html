@@ -1,0 +1,92 @@
+<div class="dia">
+<svg viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="卡尔曼滤波的预测与更新循环">
+  <rect width="1000" height="380" fill="#ffffff"/>
+  <defs>
+    <marker id="ar61" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4e5969"/>
+    </marker>
+  </defs>
+  <text x="30" y="30" font-size="15.5" font-weight="700" fill="#1d2129">卡尔曼滤波就两件事：先把椭圆吹大（预测），再把它捏小（更新）</text>
+  <text x="30" y="50" font-size="12" fill="#86909c">椭圆 = 位置估计的不确定性。它记住的从来不是一个点，而是"一个点 + 一个范围"</text>
+
+  <!-- GATE -->
+  <ellipse cx="300" cy="178" rx="92" ry="60" fill="none" stroke="#c99a2e" stroke-width="1.2" stroke-dasharray="5 5"/>
+  <text x="300" y="106" font-size="11.5" fill="#8a5a00" text-anchor="middle">GATE 关联门限</text>
+
+  <!-- 椭圆 1 -->
+  <ellipse cx="150" cy="200" rx="46" ry="26" fill="#e8f1fa" stroke="#185FA5" stroke-width="1.8"/>
+  <circle cx="150" cy="200" r="3" fill="#185FA5"/>
+  <text x="150" y="252" font-size="11.5" fill="#0f4478" text-anchor="middle">① t 时刻后验</text>
+  <text x="150" y="268" font-size="11" fill="#86909c" text-anchor="middle">"我知道它在哪，误差 ±3 cm"</text>
+
+  <!-- 椭圆 2 -->
+  <ellipse cx="300" cy="178" rx="74" ry="42" fill="none" stroke="#185FA5" stroke-width="1.8" stroke-dasharray="7 5"/>
+  <circle cx="300" cy="178" r="3" fill="#185FA5"/>
+  <text x="300" y="252" font-size="11.5" fill="#0f4478" text-anchor="middle">② 预测：椭圆吹大</text>
+  <text x="300" y="268" font-size="11" fill="#86909c" text-anchor="middle">"按速度外推，越推越不确定"</text>
+
+  <!-- 椭圆 3 -->
+  <ellipse cx="462" cy="186" rx="42" ry="24" fill="#eaf5ee" stroke="#2f7a4f" stroke-width="1.8"/>
+  <circle cx="462" cy="186" r="3" fill="#2f7a4f"/>
+  <text x="462" y="252" font-size="11.5" fill="#2f7a4f" text-anchor="middle">③ 更新：椭圆捏小</text>
+  <text x="462" y="268" font-size="11" fill="#86909c" text-anchor="middle">"看到观测了，收敛回来"</text>
+
+  <!-- 观测 -->
+  <line x1="512" y1="128" x2="532" y2="148" stroke="#b3352f" stroke-width="2"/>
+  <line x1="532" y1="128" x2="512" y2="148" stroke="#b3352f" stroke-width="2"/>
+  <text x="522" y="118" font-size="11.5" fill="#b3352f" text-anchor="middle">观测 z</text>
+  <line x1="522" y1="152" x2="474" y2="178" stroke="#b3352f" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <!-- 箭头 -->
+  <line x1="196" y1="196" x2="224" y2="188" stroke="#4e5969" stroke-width="1.4" marker-end="url(#ar61)"/>
+  <line x1="374" y1="184" x2="414" y2="186" stroke="#4e5969" stroke-width="1.4" marker-end="url(#ar61)"/>
+
+  <!-- 时间轴 -->
+  <line x1="60" y1="320" x2="580" y2="320" stroke="#d6dbe3" stroke-width="1.4"/>
+  <text x="580" y="340" font-size="11.5" fill="#86909c" text-anchor="end">时间 →</text>
+  <line x1="150" y1="292" x2="150" y2="320" stroke="#d6dbe3" stroke-dasharray="3 4"/>
+  <line x1="300" y1="292" x2="300" y2="320" stroke="#d6dbe3" stroke-dasharray="3 4"/>
+  <line x1="462" y1="292" x2="462" y2="320" stroke="#d6dbe3" stroke-dasharray="3 4"/>
+
+  <!-- 分隔 -->
+  <line x1="616" y1="70" x2="616" y2="330" stroke="#e3e6eb" stroke-dasharray="5 6"/>
+
+  <!-- 右：K 的插值含义 -->
+  <text x="646" y="96" font-size="13.5" font-weight="700" fill="#1d2129">K 就是"信谁多一点"</text>
+  <text x="646" y="118" font-size="12" fill="#4e5969">后验 = 预测 + K ·（观测 − 预测）</text>
+
+  <line x1="660" y1="212" x2="944" y2="212" stroke="#a8b0bd" stroke-width="1.6"/>
+  <circle cx="660" cy="212" r="5" fill="#185FA5"/>
+  <circle cx="944" cy="212" r="5" fill="#b3352f"/>
+  <text x="660" y="240" font-size="11.5" fill="#185FA5">预测 Hx̂⁻</text>
+  <text x="944" y="240" font-size="11.5" fill="#b3352f" text-anchor="end">观测 z</text>
+
+  <circle cx="717" cy="212" r="4.5" fill="#2f7a4f"/>
+  <text x="717" y="196" font-size="11.5" fill="#2f7a4f" text-anchor="middle">K = 0.2</text>
+  <text x="717" y="264" font-size="10.5" fill="#86909c" text-anchor="middle">更信预测</text>
+
+  <circle cx="887" cy="212" r="4.5" fill="#2f7a4f"/>
+  <text x="887" y="196" font-size="11.5" fill="#2f7a4f" text-anchor="middle">K = 0.8</text>
+  <text x="887" y="264" font-size="10.5" fill="#86909c" text-anchor="middle">更信观测</text>
+
+  <text x="646" y="300" font-size="11.5" fill="#86909c">K 由 P（预测有多不确定）和 R（观测有多吵）</text>
+  <text x="646" y="318" font-size="11.5" fill="#86909c">自动算出来 —— 这两个量里没有一个是"手调参数"。</text>
+</svg>
+<div class="cap"><span class="no">图 6-1</span><b>跟踪器每一帧都在做这个循环。</b>① → ② 是 <code>predict()</code>，② → ③ 是 <code>update()</code>；
+中间的橙色虚线圈是 GATE（关联门限），观测落在这个圈外就不认，宁可当"这帧没看见"。
+<b>关键直觉：椭圆不是画着好看的</b>——它的形状就是矩阵 <code>P</code>，而 <code>K</code> 的大小直接由"预测椭圆多大"和"观测多吵"共同决定。
+所以本项目的 <code>PROCESS_NOISE</code> / <code>MEAS_NOISE</code> 不是"调参玄学"，它们分别对应 <code>Q</code> 和 <code>R</code>，直接决定了椭圆吹大和捏小的速度。</div>
+</div>
+
+<div class="eq" data-no="卡尔曼 · 预测步">
+  <div class="line"><i>x̂</i><sup>−</sup> = <i>F</i> <i>x̂</i> <span class="lbl">按恒速模型外推：X ← X + v·dt</span></div>
+  <div class="line"><i>P</i><sup>−</sup> = <i>F P F</i><sup>T</sup> + <i>Q</i> <span class="lbl">不确定性只会变大</span></div>
+  <div class="cap"><i>F</i> 在代码里是 <code>np.eye(6)</code> 再把 (0,3)、(1,4)、(2,5) 三个位置填 <code>dt</code> —— 它就是"位置 += 速度 × 时间"这件事的矩阵写法。</div>
+</div>
+
+<div class="eq" data-no="卡尔曼 · 更新步">
+  <div class="line"><i>K</i> = <i>P</i><sup>−</sup><i>H</i><sup>T</sup> ( <i>H P</i><sup>−</sup><i>H</i><sup>T</sup> + <i>R</i> )<sup>−1</sup> <span class="lbl">该信谁的比例</span></div>
+  <div class="line"><i>x̂</i> = <i>x̂</i><sup>−</sup> + <i>K</i> ( <i>z</i> − <i>H x̂</i><sup>−</sup> ) <span class="lbl">用"新息"修正</span></div>
+  <div class="line"><i>P</i> = ( <i>I</i> − <i>K H</i> ) <i>P</i><sup>−</sup> <span class="lbl">不确定性收缩</span></div>
+  <div class="cap"><i>z</i> − <i>H x̂</i><sup>−</sup> 叫<b>新息</b>（innovation）：观测和我 prediction 差多少。<i>K</i> 大就多信观测，<i>K</i> 小就多信预测 —— 而 <i>K</i> 的大小由 <i>P</i> 和 <i>R</i> 自动算出，不需要人调。这三行就是 <code>track.py</code> 第 34–37 行。</div>
+</div>

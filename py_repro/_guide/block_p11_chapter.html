@@ -1,0 +1,125 @@
+<!-- ============ 第 14.5 章：Step10 拥塞闭环 ============ -->
+<section id="c14b">
+<h2>第 14.5 章 Step10 拥塞闭环：pacing → ν → 点/秒（复刻 Fig.14）</h2>
+
+<h3>14.5.1 这个文件干什么</h3>
+<p>前面九章把"事件 → 3D 点"的算法链路跑通了。这一章回到论文 <b>§6.4</b> 提出的<b>系统级卖点</b>：当网络拥塞、传输带宽被压低时，系统应该<b>自动调严滤波阈值 ν</b>，少发一些点，把带宽让给更重要的信息——形成一条<b>"拥塞信号 → 滤波 → 输出点/秒"的闭环</b>。</p>
+<p>本步 <code>step10_congestion.py</code> 不重算几何，而是在 10P 场景的流式流水线上，喂三种"合成拥塞算法 pacing 轨迹"，验证<b>这条闭环逻辑本身成立</b>：pacing 低 → ν 严 → 每窗口保留的点少 → 输出点/秒低；pacing 高 → 放全 → 点/秒高。三条曲线（pacing 与点/秒）应高度同向、几乎无滞后。</p>
+<div class="note paper">
+<span class="t">生活类比：空调温控</span>
+<p>把网络想象成一个房间，pacing 是<b>"室外有多热"</b>（拥塞越狠，pacing 越低），ν 是空调的<b>制冷档位</b>（ν 越严 = 扔掉越多事件 = 越省带宽 = 制冷越猛），房间温度就是<b>输出点/秒</b>。室外越热（pacing↓），你就把空调开越猛（ν↑），室温（点/秒）自然跟着室外温度走——这就是"闭环跟随"。</p>
+</div>
+<div class="note paper">
+<span class="t">论文原文（§6.4, page 9）</span>
+<p>"when the pacing rate is less than 2 Mbps or 4 Mbps the filter threshold ν in the triangulation application is set more restrictively to 0.1 or 0.25, respectively" —— 即<b>论文的控制器规则</b>：pacing &lt; 2 Mbps → ν 最严（s≤0.1）；&lt; 4 Mbps → ν 中（s≤0.25）；否则 transmit all。Fig.14 画的是 CUBIC / BBR / COPA 三算法下，ν 与"triangulated event points per second"随时间的曲线，结论是点/秒大致跟随 pacing，连探测阶段也跟随。</p>
+</div>
+<div class="note warn">
+<span class="t">差异 #12：本步不接真实 QUIC</span>
+<p><b>这是和论文最大的偏离，必须写清楚</b>：环境里没装 <code>aioquic</code>，也没有可控瓶颈链路（Windows 上没有 <code>tc/netem</code>），无法产生真实的 pacing rate / RTT / 丢包序列。因此用<b>三条合成 pacing 轨迹</b>代替 CUBIC/BBR/COPA 的真实输出。本步证明的是"<b>给定一条 pacing 曲线，闭环输出的点/秒会跟随它</b>"；至于"真机上 pacing 会长这样"这件事，本步<b>没有证明</b>——那属于 P12（真实 QUIC）。</p>
+</div>
+
+<h3>14.5.2 控制器：pacing 档位 → 目标保留率 → 三档 ν′</h3>
+<p>先读第一段常量定义，看清"论文数字"和"我们数字"的对应关系。</p>
+{{CODE:py_repro/step10_congestion.py:85:93}}
+<table>
+<thead><tr><th>行</th><th>这行在干嘛</th></tr></thead>
+<tbody>
+<tr><td>86–87</td><td>两条阈值照搬论文：pacing &lt; 2 Mbps → 最严档(0)；&lt; 4 Mbps → 中档(1)；否则放全(2)。<code>_level_of</code>（第 193 行）就按这两刀把每个窗口分到 0/1/2。</td></tr>
+<tr><td>88</td><td><b>关键一转</b>：论文给的是"保留率 s≤ν"，我们改存"<b>目标保留率</b>"{0.25, 0.55, 1.00}。为什么不直接抄 0.1/0.25/0.5？见 14.5.5：方向反了。</td></tr>
+<tr><td>89</td><td>每档的中文名，画图时当背景色带标注用。</td></tr>
+<tr><td>91</td><td>100 ms 滑动平均，出图时点/秒太抖，平滑一下好看（不影响验收，验收用的是原始 pps 的三分位）。</td></tr>
+<tr><td>93</td><td>三种算法固定顺序，保证 CSV 里 CUBIC/BBR/COPA 各占连续一段。</td></tr>
+</tbody></table>
+
+<h3>14.5.3 合成 pacing 轨迹：为什么不能直接用论文数字</h3>
+<p>论文只描述了三种算法的<b>形状</b>（CUBIC 丢包型锯齿、BBR 带宽探测平台、COPA 延迟迟滞），没给可复现的种子。我们的发生器要把形状造出来，而且——这是关键——必须保证 10 秒内能<b>扫过 2 Mbps 和 4 Mbps 两条阈值线</b>，否则 ν 的三档走不全，验收 b 直接不成立。下面取最典型的 CUBIC 看。</p>
+{{CODE:py_repro/step10_congestion.py:100:121}}
+<table>
+<thead><tr><th>行</th><th>这行在干嘛</th></tr></thead>
+<tbody>
+<tr><td>108</td><td>锯齿周期 1.4 s（10 s ≈ 7 个周期）。</td></tr>
+<tr><td>109–110</td><td>指数慢起（1→12 Mbps，约 1.1 s）+ 峰值维持一小会儿。</td></tr>
+<tr><td>116</td><td><code>np.exp((ph/rise)·log(peak))</code> 实现"指数爬升到底"，比线性更贴近 TCP 慢启动的味道。</td></tr>
+<tr><td>120</td><td>丢包 → 重置回 1 Mbps。<b>注意这里不是论文的"掉到 60%"</b>，而是"重置回 1"——详见下方偏离说明。</td></tr>
+</tbody></table>
+<!--FIG1-->
+<div class="note eng">
+<span class="t">工程师笔记：为跑满三档而做的偏离</span>
+<p>CUBIC 真实行为是"遇丢包瞬时掉到 60%、再涨回同一个 W_max"，那样 pacing 长期停在 ≥ 7 Mbps，<b>最严那一档永远触发不到</b>。本实现让丢包表现为<b>超时重置回 1 Mbps</b>（第 120 行），每个周期都从头扫过 2/4 Mbps 两条线，10 s 内扫过 12→1.3 Mbps。BBR / COPA 同理把排空下限放宽到 1.6 / 0.8 Mbps（见第 134、162 行注释）。这是<b>为了验收能收敛而做的合理放大</b>，不是论文原值，文档里必须明说。</p>
+</div>
+
+<h3>14.5.4 红线：quality_scores 整段只算一次</h3>
+<p>闭环的前置是：先把 10P 场景 11734 个匹配点一次性算好质量分 <code>q</code>，再逐窗口按 ν′ 复用。这里藏着一条<b>性能红线</b>。</p>
+{{CODE:py_repro/step10_congestion.py:277:291:278}}
+<table>
+<thead><tr><th>行</th><th>这行在干嘛</th></tr></thead>
+<tbody>
+<tr><td>259–272</td><td>流式窗口带 ±<code>T_MAX_US</code> 回看（坑#8 修复），每个窗口匹配出点；只保留落在本窗口内的输出点。</td></tr>
+<tr><td>275</td><td>把所有窗口的点堆成 <code>stacked</code>，一次喂给 <code>quality_scores</code>。</td></tr>
+<tr><td>278</td><td><b>红线所在</b>：<code>q_all</code> 只在这里算<b>一次</b>。它内部是 O(n²)——11734² ≈ 1.4 亿次距离比较，单次约 1–2 s。若放进"逐窗口"循环（1000 个窗口）会变成上千倍开销，几十分钟起。</td></tr>
+<tr><td>279</td><td>用 <code>np.split</code> 把整段 q 按窗口长度切回逐窗口，后面每个窗口只做 <code>q ≥ ν′</code> 的 O(n) 比较。</td></tr>
+</tbody></table>
+<div class="note eng">
+<span class="t">工程师笔记：为什么 q 必须整段算一次</span>
+<p><code>quality_scores</code>（在 <code>streaming.py</code>）对每个点做一次<b>全量</b>距离比较算邻域密度，复杂度 O(n²)。10P 有 11734 点，这是本步唯一的大头计算。把它从"逐窗口 ×1000 次"下沉到"整段 ×1 次"，是 14.5.7 能 1–2 s 跑完而不是几十分钟的关键。TC13 里专门有一条"quality_scores 调用 ≤1 次"的回归断言。</p>
+</div>
+
+<h3>14.5.5 反标定：把论文的 s 换算成我们的 ν′</h3>
+<p>这一段是全步<b>最容易抄错</b>的地方。论文的 ν 是"<b>坏度门槛</b>：越小越好，保留 s ≤ ν"；我们的 <code>quality_scores</code> 是"<b>好度</b>：越大越好，保留 q ≥ ν′"。<b>方向相反</b>，所以 0.1/0.25/0.5 这三个论文数字<b>不能直接套</b>到我们的 q 上——否则 ν′=0.1 会把几乎所有点都留下来（等于没过滤）。做法是在<b>全场景 q 分布</b>上取分位数，换算成"等保留率"的 q 阈值。</p>
+{{CODE:py_repro/step10_congestion.py:301:325}}
+<table>
+<thead><tr><th>行</th><th>这行在干嘛</th></tr></thead>
+<tbody>
+<tr><td>312–315</td><td>放全档（目标保留率 ≥ 1.0）直接取 <code>q_all.min()</code>——阈值等于最低分，所有点都保留。</td></tr>
+<tr><td>316</td><td>其余两档先取"<b>直接分位数</b>" <code>quantile(q, 1−保留率)</code> 作为初始点。</td></tr>
+<tr><td>318–324</td><td><b>实测坑</b>：q 是离散的邻域计数，同一取值上往往成百上千点并列，阈值切在并列组里时整组一起保留/丢弃，实测保留率会偏好几个百分点；再叠加场景质量随时间 ±20% 慢漂移，偏差可达 7pp。于是<b>不直接用分位数，而是在它附近 ±12 个并列取值里，挑使"三算法该档实现保留率最大偏差"最小的那一个</b>。三档共用一组 ν′（仍是 3 个离散值）。</td></tr>
+</tbody></table>
+<div class="note eng">
+<span class="t">工程师笔记：离散 q 的并列组偏差（实测坑，非新 bug）</span>
+<p>这一步的 <code>NU_SEARCH=12</code> 邻域搜索，本质是给"离散指标 + 慢漂移"打的补丁。它把"直接分位数"的偏差从最多 7pp 压到 ≤2pp（验收 c 的红线）。论文没有这个问题，因为论文用连续的概率分数；我们为了省算力用整数邻域计数，就得自己补这个标定。它已经是 step10 docstring 自述的实现细节，<b>不是新发现的 bug</b>，这里只是讲清机制。</p>
+</div>
+
+<h3>14.5.6 闭环：每个窗口过滤 → 点/秒</h3>
+<p>有了 ν′ 和逐窗口 q，闭环就一行过滤。取 <code>run_algo</code> 的过滤核心。</p>
+{{CODE:py_repro/step10_congestion.py:344:351}}
+<table>
+<thead><tr><th>行</th><th>这行在干嘛</th></tr></thead>
+<tbody>
+<tr><td>344–346</td><td>每个窗口按其 pacing 档位取到对应的 ν′（<code>nu[levels]</code>），得到该窗口的阈值向量 <code>nu_win</code>。</td></tr>
+<tr><td>349</td><td><b>闭环核心</b>：<code>np.sum(q ≥ nu_win[k])</code> —— 这一窗口里，"好度"超过阈值的点有几个，就保留几个。pacing 低 → 档位严 → ν′ 大 → 保留少。</td></tr>
+<tr><td>351</td><td>点/秒 = 保留数 ÷ 窗口时长（10 ms）。</td></tr>
+</tbody></table>
+<!--FIG2-->
+
+<h3>14.5.7 四维验收（TC13 直接引用）</h3>
+<p><code>acceptance</code> 把四条验收汇总成一个布尔。这正是 <code>test_all_steps.py</code> 的 TC13 判据来源。</p>
+{{CODE:py_repro/step10_congestion.py:470:484}}
+<table>
+<thead><tr><th>验收</th><th>判据</th><th>本机实测</th></tr></thead>
+<tbody>
+<tr><td>a 离散 + 零违例</td><td>ν′ 恰好 3 个离散值，且逐窗口档位无错配</td><td>ν′ 取值 {0, 0.176471, 0.316176} 共 3 个；违例总数 0</td></tr>
+<tr><td>b 跟随 + 单调</td><td>Pearson r ≥ 0.6，且按 pacing 排序的三分位点/秒严格递增</td><td>CUBIC r=0.742；BBR r=0.751；COPA r=0.635；三分位全递增</td></tr>
+<tr><td>c 保留率偏差</td><td>实测保留率与目标的偏差 ≤ 2pp</td><td>最大偏差 1.41pp</td></tr>
+<tr><td>d 滞后</td><td>互相关峰值滞后 ≤ 2 格（≤ 20 ms）</td><td>三算法滞后全 0 格</td></tr>
+</tbody></table>
+<div class="note ok">
+<span class="t">验收结论</span>
+<p>37/37 全 PASS（含 TC13）。闭环逻辑成立：给定合成 pacing，输出点/秒严格跟随，无滞后、无档位错配、保留率偏差 &lt; 2pp。<b>但这是"给定 pacing"的结论，不等同于"真实 QUIC 会这样"——后者留 P12。</b></p>
+</div>
+
+<h3>14.5.8 小结</h3>
+<ol>
+<li>本步验证的是<b>闭环逻辑本身</b>（pacing→ν→点/秒跟随），不是 CUBIC/BBR/COPA 的实现正确性，更不是 QUIC 协议——因为用合成 pacing 代替了真实网络（差异#12）。</li>
+<li>论文的 ν 是"<b>坏度门槛</b>"，我们的 q 是"<b>好度</b>"，方向相反，所以 0.1/0.25/0.5 <b>不能直接套</b>，要按保留率反标定成 q 阈值。</li>
+<li><code>quality_scores</code> 是 O(n²) 红线：整段只算一次（第 278 行），逐窗口只做 O(n) 比较，否则从秒级变几十分钟。</li>
+<li>离散 q 的并列组会让"直接分位数"偏差到 7pp；用 ±12 邻域联合标定压到 ≤2pp（验收 c）。</li>
+<li>为让 ν 三档都能被走到，三条 pacing 轨迹的排空下限被<b>有意放宽</b>（CUBIC 重置回 1、BBR 到 1.6、COPA 到 0.8 Mbps）——这是偏离论文数字、为验收服务的合理放大，须写明。</li>
+</ol>
+
+<h3>14.5.9 动手试一试</h3>
+<ol>
+<li>把 <code>TARGET_KEEP</code>（第 88 行）改成 <code>(0.5, 0.8, 1.0)</code>，重跑。看 ν′ 三个值怎么变、保留率偏差还能不能压到 2pp 以内——亲手验证"目标保留率是旋钮"。</li>
+<li>把第 278 行的 <code>q_all</code> 计算<b>挪进</b> <code>run_algo</code> 的逐窗口循环里（造一个性能 bug），重跑并计时。对比卡第 278 行一次算完，你会亲眼看到从秒级到几十分钟的差距——这正是红线存在的意义。</li>
+<li>把 <code>NU_SEARCH</code>（第 298 行）改成 0（只用直接分位数），重跑 TC13，看验收 c 还能不能过——亲手确认"离散 q 并列组"这个坑是真的。</li>
+</ol>
+</section>

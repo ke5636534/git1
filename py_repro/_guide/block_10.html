@@ -1,0 +1,67 @@
+<div class="dia">
+<svg viewBox="0 0 1000 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="端到端延迟的两段分解">
+  <rect width="1000" height="350" fill="#ffffff"/>
+  <text x="30" y="30" font-size="15.5" font-weight="700" fill="#1d2129">延迟不是一个数，是两段：算得慢，还是等得久？</text>
+  <text x="30" y="50" font-size="12" fill="#86909c">论文 §6.2 的全部方法论就在这一条线上 —— 把"一个事件从发生到变成轨迹"切成互不重叠的两段</text>
+
+  <!-- 主时间轴 -->
+  <line x1="90" y1="230" x2="930" y2="230" stroke="#e3e6eb" stroke-width="1.2"/>
+  <line x1="150" y1="200" x2="430" y2="200" stroke="#185FA5" stroke-width="9" stroke-linecap="round"/>
+  <line x1="430" y1="200" x2="760" y2="200" stroke="#2f7a4f" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- 事件流示意 -->
+  <g fill="#b9cfe6">
+    <circle cx="60" cy="200" r="2.4"/><circle cx="76" cy="200" r="2.4"/><circle cx="92" cy="200" r="2.4"/>
+    <circle cx="108" cy="200" r="2.4"/><circle cx="124" cy="200" r="2.4"/>
+  </g>
+  <text x="90" y="184" font-size="10.5" fill="#86909c" text-anchor="middle">事件流</text>
+
+  <!-- 三个里程碑 -->
+  <circle cx="150" cy="200" r="8" fill="#fff" stroke="#185FA5" stroke-width="3"/>
+  <circle cx="430" cy="200" r="8" fill="#fff" stroke="#8a5a00" stroke-width="3"/>
+  <circle cx="760" cy="200" r="8" fill="#fff" stroke="#2f7a4f" stroke-width="3"/>
+
+  <text x="150" y="176" font-size="11.5" font-weight="700" fill="#185FA5" text-anchor="middle">t_k</text>
+  <text x="150" y="252" font-size="11" fill="#4e5969" text-anchor="middle">事件被捕获</text>
+  <text x="150" y="268" font-size="10.5" fill="#86909c" text-anchor="middle">（它自己的时间戳）</text>
+
+  <text x="430" y="176" font-size="11.5" font-weight="700" fill="#8a5a00" text-anchor="middle">t_buf</text>
+  <text x="430" y="252" font-size="11" fill="#4e5969" text-anchor="middle">三角测量结果</text>
+  <text x="430" y="268" font-size="10.5" fill="#86909c" text-anchor="middle">放进发送缓冲区</text>
+
+  <text x="760" y="176" font-size="11.5" font-weight="700" fill="#2f7a4f" text-anchor="middle">t_out</text>
+  <text x="760" y="252" font-size="11" fill="#4e5969" text-anchor="middle">轨迹输出</text>
+  <text x="760" y="268" font-size="10.5" fill="#86909c" text-anchor="middle">（可以发走了）</text>
+
+  <!-- 段标注 -->
+  <text x="290" y="120" font-size="14" font-weight="700" fill="#185FA5" text-anchor="middle">L_proc</text>
+  <text x="290" y="140" font-size="11.5" fill="#4e5969" text-anchor="middle">匹配 + 三角测量的纯计算时间</text>
+  <text x="290" y="158" font-size="11" fill="#b3352f" text-anchor="middle">本机 10P 中位 2.058 ms ← 瓶颈在这</text>
+
+  <text x="595" y="120" font-size="14" font-weight="700" fill="#2f7a4f" text-anchor="middle">L_track</text>
+  <text x="595" y="140" font-size="11.5" fill="#4e5969" text-anchor="middle">跟踪器计算 + 最多 2 ms 缓冲等待</text>
+
+  <!-- 缓冲区小方块 -->
+  <g>
+    <rect x="386" y="86" width="16" height="16" rx="2" fill="#fdf6e3" stroke="#c99a2e"/>
+    <rect x="406" y="86" width="16" height="16" rx="2" fill="#fdf6e3" stroke="#c99a2e"/>
+    <rect x="426" y="86" width="16" height="16" rx="2" fill="#fdf6e3" stroke="#c99a2e"/>
+    <text x="452" y="99" font-size="10.5" fill="#8a5a00">发送缓冲（最多攒 2 ms）</text>
+  </g>
+
+  <!-- 大括号 -->
+  <path d="M150,282 L150,292 L444,292 Q454,292 454,300 Q454,292 464,292 L760,292 L760,282"
+        fill="none" stroke="#4e5969" stroke-width="1.2"/>
+  <text x="455" y="330" font-size="12.5" font-weight="700" fill="#1d2129" text-anchor="middle">L_lat = L_proc + L_track　（端到端）</text>
+</svg>
+<div class="cap"><span class="no">图 10-1</span><b>为什么要拆？因为两段的"病因"完全不同。</b><code>L_proc</code> 慢，是算法复杂度问题（匹配循环是 <i>O</i>(n·m)），要优化代码或降载；<code>L_track</code> 慢，多半是在等缓冲（只攒满 2 ms 或攒够一批才发），要改发送策略。
+<b>只报一个"端到端 3 ms"，你根本不知道该动哪一边。</b>
+注意 <code>t_k</code> 是<b>事件自己的时间戳</b>，不是"程序收到它的时刻"——这一点常被搞错，会导致 L_proc 少算掉相机到主机的传输时间（论文没算这段，本复现也没算，属于同一口径）。</div>
+</div>
+
+<div class="eq" data-no="论文 §6.2 的三个定义">
+  <div class="line"><i>L</i><sub>proc,<i>i</i></sub> = <i>t</i><sub>buf,<i>i</i></sub> − <i>t</i><sub><i>k</i></sub> <span class="lbl">事件发生 → 它的 3D 点进缓冲区</span></div>
+  <div class="line"><i>L</i><sub>track,<i>i</i></sub> = <i>t</i><sub>out,<i>i</i></sub> − <i>t</i><sub>buf,<i>i</i></sub> <span class="lbl">进缓冲区 → 它的轨迹输出</span></div>
+  <div class="line"><i>L</i><sub>lat,<i>i</i></sub> = <i>L</i><sub>proc,<i>i</i></sub> + <i>L</i><sub>track,<i>i</i></sub> <span class="lbl">两段严格首尾相接，不重叠</span></div>
+  <div class="cap">下标 <i>i</i> 很关键：<b>这是"逐个事件"的量，不是"整段数据"的量</b>。所以统计时要按<b>输出点</b>加权（每个点等权），而不是按窗口等权 —— 否则空窗口会把中位数拉低到微秒级（这正是 <code>step8_latency.py</code> 第一版踩的坑，见 10.6）。</div>
+</div>

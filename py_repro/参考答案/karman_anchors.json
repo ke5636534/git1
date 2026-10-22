@@ -1,0 +1,79 @@
+{
+  "karman_real": {
+    "meta": {
+      "source": "evt3:D:\\动微视觉\\事件相机论文复现\\STELLA_data\\karmanFlow\\karman_199ms.raw",
+      "n_left": 3111957,
+      "n_right": 0,
+      "n_gt": 0,
+      "mono": true,
+      "kappa_applied": null,
+      "decode_stats": {
+        "n_words": 131170702,
+        "n_addr_x": 58746074,
+        "n_vect12": 14069508,
+        "n_vect8": 7034754
+      },
+      "sensor": {
+        "width": 1280,
+        "height": 720,
+        "format": "EVT3 (Prophesee Gen4)"
+      },
+      "pseudo_stereo": {
+        "enabled": false,
+        "shift_px": null,
+        "jitter_us": null,
+        "jitter_px": null,
+        "right_drop": null,
+        "warning": null
+      }
+    },
+    "events_left.npz": 3111957,
+    "events_right.npz": 0,
+    "events_left_f.npz": 3026883,
+    "events_right_f.npz": 0,
+    "gt.npz": 0
+  },
+  "karman_pseudo": {
+    "meta": {
+      "source": "evt3:D:\\动微视觉\\事件相机论文复现\\STELLA_data\\karmanFlow\\karman_199ms.raw",
+      "n_left": 81062,
+      "n_right": 80166,
+      "n_gt": 0,
+      "mono": false,
+      "kappa_applied": 0.1,
+      "decode_stats": {
+        "n_words": 131170702,
+        "n_addr_x": 58746074,
+        "n_vect12": 14069508,
+        "n_vect8": 7034754
+      },
+      "sensor": {
+        "width": 1280,
+        "height": 720,
+        "format": "EVT3 (Prophesee Gen4)"
+      },
+      "pseudo_stereo": {
+        "enabled": true,
+        "shift_px": 42.0,
+        "jitter_us": 50.0,
+        "jitter_px": 1.0,
+        "right_drop": 0.01,
+        "warning": "右目=左目平移拷贝+抖动，非物理双目；3D 坐标无物理意义，仅供管线联调"
+      }
+    },
+    "events_left.npz": 81062,
+    "events_right.npz": 80166,
+    "events_left_f.npz": 80789,
+    "events_right_f.npz": 79181,
+    "match_points.npz": 75276,
+    "cluster_centers.npz": 6842,
+    "track_points.npz": 6842,
+    "gt.npz": 0,
+    "Z_stats": {
+      "min": 0.28,
+      "median": 0.9767,
+      "max": 8.4,
+      "std": 0.8829
+    }
+  }
+}

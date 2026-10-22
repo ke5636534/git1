@@ -1,0 +1,54 @@
+<div class="dia">
+<svg viewBox="0 0 1000 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三道关卡的真实筛选漏斗">
+  <rect width="1000" height="430" fill="#ffffff"/>
+  <text x="30" y="30" font-size="15.5" font-weight="700" fill="#1d2129">三道关卡到底砍掉了多少：用本机 1,207 个匹配点的真实数据算一遍</text>
+  <text x="30" y="50" font-size="12" fill="#86909c">条形长度按 log10(数量) 缩放，否则第一行会把后面四行压成一条线</text>
+
+  <!-- 行1 -->
+  <text x="30" y="112" font-size="13.5" font-weight="700" fill="#1d2129">暴力枚举</text>
+  <text x="30" y="130" font-size="11.5" fill="#86909c">7,475 左 × 7,518 右</text>
+  <rect x="300" y="92" width="640" height="30" rx="4" fill="#0f4478"/>
+  <text x="960" y="112" font-size="13.5" font-weight="700" fill="#0f4478" text-anchor="end">56,197,050 种</text>
+  <text x="300" y="140" font-size="11.5" fill="#b3352f">若逐个比较：5600 万次距离计算，纯 Python 要跑十几分钟</text>
+
+  <!-- 行2 -->
+  <text x="30" y="174" font-size="13.5" font-weight="700" fill="#1d2129">① 时间窗</text>
+  <text x="30" y="192" font-size="11.5" fill="#86909c">|t_L − t_R| ≤ 150 µs</text>
+  <rect x="300" y="154" width="116" height="30" rx="4" fill="#185FA5"/>
+  <text x="428" y="174" font-size="13" font-weight="700" fill="#1d2129">3,080 对</text>
+  <text x="512" y="174" font-size="11.5" fill="#b3352f">砍掉 99.995%　←　绝对主力</text>
+  <text x="300" y="202" font-size="11.5" fill="#86909c">平均每个左事件只剩 0.41 个候选：6,268 个左事件一个都没配上，1,127 个配到 1 个</text>
+
+  <!-- 行3 -->
+  <text x="30" y="236" font-size="13.5" font-weight="700" fill="#1d2129">② 极线窗</text>
+  <text x="30" y="254" font-size="11.5" fill="#86909c">|y_L − y_R| ≤ 15 px</text>
+  <rect x="300" y="216" width="75" height="30" rx="4" fill="#3d84bf"/>
+  <text x="387" y="236" font-size="13" font-weight="700" fill="#1d2129">1,566 对</text>
+  <text x="471" y="236" font-size="11.5" fill="#b3352f">再砍 49.2%</text>
+
+  <!-- 行4 -->
+  <text x="30" y="298" font-size="13.5" font-weight="700" fill="#1d2129">③ 视差窗</text>
+  <text x="30" y="316" font-size="11.5" fill="#86909c">5 ≤ d ≤ 150 px</text>
+  <rect x="300" y="278" width="71" height="30" rx="4" fill="#7fb0d8"/>
+  <text x="383" y="298" font-size="13" font-weight="700" fill="#1d2129">1,441 对</text>
+  <text x="467" y="298" font-size="11.5" fill="#b3352f">再砍 8.0%</text>
+
+  <!-- 行5 -->
+  <text x="30" y="360" font-size="13.5" font-weight="700" fill="#2f7a4f">打分选最优</text>
+  <text x="30" y="378" font-size="11.5" fill="#86909c">s &lt; 1.0 且取最小</text>
+  <rect x="300" y="340" width="60" height="30" rx="4" fill="#2f7a4f"/>
+  <text x="372" y="360" font-size="13" font-weight="700" fill="#2f7a4f">1,207 个 3D 点</text>
+  <text x="500" y="360" font-size="11.5" fill="#86909c">其中 234 个因分数 &gt; 1.0 被丢弃</text>
+
+  <!-- 流程箭头 -->
+  <line x1="288" y1="306" x2="288" y2="336" stroke="#c9ced6" stroke-width="1.2"/>
+  <line x1="288" y1="182" x2="288" y2="212" stroke="#c9ced6" stroke-width="1.2"/>
+  <line x1="288" y1="244" x2="288" y2="274" stroke="#c9ced6" stroke-width="1.2"/>
+
+  <text x="30" y="412" font-size="11.5" fill="#2f7a4f">结论：真正省时间的是"时间窗"这一刀，它一个人干掉了 99.99% 的组合；极线窗和视差窗只是"收尾"，但少了它们，误配率会明显上升。</text>
+</svg>
+<div class="cap"><span class="no">图 4-1</span><b>这不是示意图，是按 <code>events_left_f.npz</code> / <code>events_right_f.npz</code> 逐事件统计出来的。</b>
+做法是：对每个左事件，用 <code>np.searchsorted</code> 在右事件的时间轴里取 <code>[t−150µs, t+150µs]</code> 区间，再依次套极线窗与视差窗，最后数剩下几个。
+最关键的一行是"平均 0.41 个候选"——<b>事件在时间上极其稀疏</b>（一颗粒子一秒才吐几千个事件，摊到 300 µs 窗口里平均连半个都不到），所以时间窗能一刀砍到 0.005%。
+这也解释了代码里那句 <code>if len(cand) == 0: continue</code> 为什么会被执行 6,268 次——<b>大部分左事件本来就配不上，这是正常现象，不是 bug</b>。</div>
+</div>
